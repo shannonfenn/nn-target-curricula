@@ -127,6 +127,12 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
         remaining_targets = np.setdiff1d(remaining_targets, learned_targets)
 
         order, F = utils.minfs_curriculum(A, Y[:, remaining_targets])
+
+        # replace empty feature sets
+        F = [fs if len(fs)
+             else list(range(A.shape[1]))
+             for fs in F]
+
         t_ = order[0]                  # Get the target ranked as "easiest"
         fs = F[t_]                 # Get the feature set for that target
         t = remaining_targets[t_]  # Get the true index of that target

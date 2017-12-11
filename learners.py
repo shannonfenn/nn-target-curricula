@@ -3,7 +3,7 @@ from keras.layers import Input, Dense, Concatenate
 from keras.models import Model
 import keras.backend as K
 import utils 
-
+import nnutils 
 
 
 def one_hidden_layer_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
@@ -141,7 +141,7 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
                                             fit_kwargs)
 
         # append new activations
-        H = utils.get_activations(submodel, X_prime, 1)
+        H = nnutils.get_activations(submodel, X_prime, 1)
         
         if which_layers == 'input+prev':
             # Use X instead of A to prevent growth

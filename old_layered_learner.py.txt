@@ -1,0 +1,110 @@
+
+def layered_learner(X, Y, Nh, nonlinearity, loss, optimizer, fit_kwargs, 
+                    use_mask=True, which_layers='input+prev',
+                    rescale_epochs=True):
+    # Single Nh-unit hidden layer - one net per tgt
+    # Same layer structure as 'parallel'
+
+    A = X
+    Ni = X.shape[1]
+    No = Y.shape[1]
+    remaining_targets = np.arange(No, dtype=int)
+    learned_targets = []
+    feature_sets = []
+    submodels = []
+
+    if rescale_epochs:
+        fit_kwargs = dict(fit_kwargs)
+        fit_kwargs['epochs'] = fit_kwargs['epochs'] // No
+    print(fit_kwargs)
+
+    for i in range(No):
+        # print('strata {}'.format(i))
+        remaining_targets = np.setdiff1d(remaining_targets, learned_targets)
+
+        order, F = utils.minfs_curriculum(A, Y[:, remaining_targets])
+        t_ = order[0]                  # Get the target ranked as "easiest"
+        fs = F[t_]                 # Get the feature set for that target
+        t = remaining_targets[t_]  # Get the true index of that target
+
+        # print('  target: {}'.format(i))
+
+        # New input matrix
+        if use_mask:
+            X_prime = A[:, fs]
+        else:
+            X_prime = A
+        submodel = one_hidden_layer_learner(X_prime, Y[:, [t]], Nh, 
+                                            nonlinearity, loss, optimizer,
+                                            fit_kwargs)
+
+        # print('  learned')
+
+
+        # append new activations
+        H = utils.get_activations(submodel, X_prime, 1)
+        
+        if which_layers == 'input+prev':
+            # Use X instead of A to prevent growth
+            A = np.hstack([X, H])
+        elif which_layers == 'all':
+            A = np.hstack([A, H])
+        else:
+            raise ValueError('Invalid value "{}" for option "which_layers"'.format(which_layers))
+        
+        learned_targets.append(t)
+
+        submodels.append(submodel)
+        feature_sets.append(fs)
+
+    # print('finished, joining strata.')
+
+    model = join_models(Ni, learned_targets, submodels,
+                        feature_sets, use_mask, which_layers)
+
+    return model, {'tgt_order': learned_targets, 'feature_sets': feature_sets}
+
+
+def join_models(Ni, target_order, nets, feature_sets, use_mask, which_layers):
+    final_inp = Input(shape=(Ni, ))
+    A = final_inp
+
+    No = len(target_order)
+    out_layers = [None]*No
+
+    for i, (t, submodel, fs) in enumerate(zip(target_order, nets, feature_sets)):
+        if use_mask:
+            Nf = K.get_variable_shape(A)[1]
+            F = np.eye(Nf)[:, fs]
+            Af = Dense(len(fs), use_bias=False, weights=[F])(A)  # identity activation
+        else:
+            Af = A
+
+        h = Af
+        hidden_layers = []
+        for h_old in submodel.layers[1:-1]:
+            h = Dense(h_old.units, weights=h_old.get_weights(),
+                      activation=h_old.activation)(h)
+            hidden_layers.append(h)
+
+        out_old = submodel.layers[-1]
+        out = Dense(out_old.units, weights=out_old.get_weights(),
+                    activation=out_old.activation)(h)
+        
+        # build up a list of the output layers in the original target order
+        # (the inverse of the permutation given by "target_order")
+        out_layers[t] = out
+
+        if i < No - 1:
+            if which_layers == 'input+prev':
+                # Use X instead of A to prevent growth
+                A = Concatenate()([final_inp] + hidden_layers)
+            elif which_layers == 'all':
+                A = Concatenate()([A] + hidden_layers)
+
+    # final output layer
+    final_out = Concatenate()(out_layers)
+
+    model = Model(inputs=final_inp, outputs=final_out)
+
+    return model

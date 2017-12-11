@@ -5,6 +5,6 @@ except ImportError:
 
 setup(
     name='nn-target-curricula',
-    scripts=['scripts/prepare_nn_experiment.py',
-             'scripts/run_nn_experiments.py']
+    scripts=['scripts/nn_prepare_experiment.py',
+             'scripts/nn_run_experiments.py']
     )

@@ -24,10 +24,10 @@ def error(model, X, Y):
 def mcc(model, X, Y):
     # todo: is predict_on_batch faster?
     Y_pred = np.sign(model.predict(X))
-    tp = np.logical_and(Y_pred >  0, Y >  0).sum(axis=0)
-    fp = np.logical_and(Y_pred >  0, Y <= 0).sum(axis=0)
-    tn = np.logical_and(Y_pred <= 0, Y <= 0).sum(axis=0)
-    fn = np.logical_and(Y_pred <= 0, Y >  0).sum(axis=0)
+    tp = np.logical_and(Y_pred >  0, Y >  0).sum(axis=0).astype(np.float64)
+    fp = np.logical_and(Y_pred >  0, Y <= 0).sum(axis=0).astype(np.float64)
+    tn = np.logical_and(Y_pred <= 0, Y <= 0).sum(axis=0).astype(np.float64)
+    fn = np.logical_and(Y_pred <= 0, Y >  0).sum(axis=0).astype(np.float64)
 
     actual_p = tp + fn
     actual_n = tn + fp

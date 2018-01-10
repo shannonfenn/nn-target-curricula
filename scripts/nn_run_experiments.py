@@ -5,6 +5,7 @@ import pickle
 import json
 import gzip
 from os.path import splitext
+import keras.backend as K
 
 from utils import NumpyAwareJSONEncoder
 from learn_ann import learn
@@ -22,6 +23,7 @@ def run_multiple_experiments(explistfile, verbose):
 
 
 def run_single_experiment(expfile, verbose):
+    K.clear_session()
     # task = pickle.load(open(expfile, 'rb'))
     task = pickle.load(gzip.open(expfile, 'rb'))
     result = learn(task, verbose)

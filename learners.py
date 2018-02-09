@@ -6,13 +6,15 @@ import utils
 import nnutils 
 
 
-def one_hidden_layer_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
+def one_hidden_layer_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
+                             regularizer=None):
     _, Ni = X.shape
     _, No = Y.shape
 
     # input tensor
     inp = Input(shape=(Ni,))
-    h = Dense(Nh, activation=nonlinearity, name='hidden')(inp)
+    h = Dense(Nh, activation=nonlinearity, name='hidden',
+              activity_regularizer=regularizer)(inp)
     out = Dense(No, activation=nonlinearity)(h)
 
     model = Model(inputs=inp, outputs=out)
@@ -23,21 +25,24 @@ def one_hidden_layer_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs)
     return model
 
 
-def shared_a_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
+def shared_a_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
+                     regularizer=None):
     # Single No*Nh-unit hidden layer
     model = one_hidden_layer_learner(X, Y, Nh*Y.shape[1], nonlinearity,
-                                     compile_kwargs, fit_kwargs)
+                                     compile_kwargs, fit_kwargs, regularizer)
     return model, {}
 
 
-def shared_b_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
+def shared_b_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
+                     regularizer):
     _, Ni = X.shape
     _, No = Y.shape
     # No, Nh-unit hidden layers
     inp = Input(shape=(Ni,))
     h = inp
     for i in range(No):
-        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i))(h)
+        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i),
+                  activity_regularizer=regularizer)(h)
     out = Dense(No, activation=nonlinearity)(h)
 
     # training
@@ -48,7 +53,8 @@ def shared_b_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
     return model, {}
 
 
-def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
+def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
+                     regularizer):
     _, Ni = X.shape
     _, No = Y.shape
     # determine target order apriori
@@ -59,7 +65,8 @@ def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
     hidden_layers = []
     h = inp
     for i in range(No):
-        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i))(h)
+        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i),
+                  activity_regularizer=regularizer)(h)
         hidden_layers.append(h)
     output_units = [None]*No
     for t in order:
@@ -76,7 +83,8 @@ def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
     return model, {'tgt_order': order, 'feature_sets': F}
 
 
-def parallel_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
+def parallel_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
+                     regularizer):
     Ni = X.shape[1]
     No = Y.shape[1]
 
@@ -86,7 +94,8 @@ def parallel_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
     # hidden layers - each connected to inp
     hidden_layers = []
     for i in range(No):
-        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i))(inp)
+        h = Dense(Nh, activation=nonlinearity, name='hidden{}'.format(i),
+                  activity_regularizer=regularizer)(inp)
         hidden_layers.append(h)
 
     # output units - one per hidden layer
@@ -105,7 +114,7 @@ def parallel_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs):
 
 
 def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs, 
-                    use_mask=True, which_layers='input+prev',
+                    regularizer=None, use_mask=True, which_layers='input+prev',
                     rescale_epochs=True):
     # Single Nh-unit hidden layer - one net per tgt
     # Same layer structure as 'parallel'
@@ -115,7 +124,8 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
     No = Y.shape[1]
     remaining_targets = np.arange(No, dtype=int)
     learned_targets = []
-    feature_sets = []
+    all_feature_sets = np.empty((No, No), dtype=list)
+    used_feature_sets = []
     layer_configs = []
 
     if rescale_epochs:
@@ -123,12 +133,15 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
         fit_kwargs['epochs'] = fit_kwargs['epochs'] // No
 
     for i in range(No):
-        # print('strata {}'.format(i))
         remaining_targets = np.setdiff1d(remaining_targets, learned_targets)
 
         order, F = utils.minfs_curriculum(A, Y[:, remaining_targets])
 
-        # replace empty feature sets
+        # save all feature sets
+        for t, fs in zip(remaining_targets, F):
+            all_feature_sets[i, t] = fs
+
+        # replace empty feature sets before finding smallest
         F = [fs if len(fs)
              else list(range(A.shape[1]))
              for fs in F]
@@ -144,7 +157,7 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
             X_prime = A
         submodel = one_hidden_layer_learner(X_prime, Y[:, [t]], Nh, 
                                             nonlinearity, compile_kwargs,
-                                            fit_kwargs)
+                                            fit_kwargs, regularizer)
 
         # append new activations
         H = nnutils.get_activations(submodel, X_prime, 1)
@@ -156,20 +169,24 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
             A = np.hstack([A, H])
         else:
             raise ValueError('Invalid value "{}" for option "which_layers"'.format(which_layers))
-        
+
         learned_targets.append(t)
 
-        layer_configs.append([(l.units, l.activation, l.get_weights())
-                              for l in submodel.layers[1:]])
-        feature_sets.append(fs)
+        new_layer_configs = [(l.units, l.activation, l.get_weights())
+                             for l in submodel.layers[1:]]
+
+        layer_configs.append(new_layer_configs)
+
+        used_feature_sets.append(fs)
 
         # prevent model accumulation causing keras to slow down
         K.clear_session()
 
     model = join_models(Ni, learned_targets, layer_configs,
-                        feature_sets, use_mask, which_layers)
+                        used_feature_sets, use_mask, which_layers)
 
-    return model, {'tgt_order': learned_targets, 'feature_sets': feature_sets}
+    return model, {'tgt_order': learned_targets, 
+                   'feature_sets': all_feature_sets}
 
 
 def join_models(Ni, target_order, layer_configs, feature_sets, use_mask, which_layers):

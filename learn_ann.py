@@ -3,6 +3,7 @@ import time
 
 import bitpacking.packing as pk
 import learners
+from nnutils import BipolarL1Regularizer
 
 
 LEARNERS = {
@@ -116,6 +117,11 @@ def learn(params, verbose=False):
     learner_kwargs = params['architecture']['params']
     Nh = params['architecture']['Nh']
     nonlin = params['architecture']['nonlinearity']
+    regularizer = params['architecture'].get('regularizer', None)
+    if regularizer is not None:
+        regularizer = BipolarL1Regularizer(regularizer.get('gamma', 0.0), 
+                                           regularizer.get('alpha', 0.0), 
+                                           regularizer.get('beta', 0.0))
 
     compile_params = dict(params['compile'])
     fit_params = dict(params['fit'])
@@ -130,7 +136,7 @@ def learn(params, verbose=False):
 
     t_setup = time.time()
     model, learner_record = learner(X_trg, Y_trg, Nh, nonlin, compile_params,
-                                    fit_params, **learner_kwargs)
+                                    fit_params, regularizer, **learner_kwargs)
 
     t_learn = time.time()
 

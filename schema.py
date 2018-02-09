@@ -83,10 +83,11 @@ minfs_params_schema = Any(
     )
 
 architecture_schema = Schema({
-    'name':             Any('shared_a', 'shared_b', 'shared_c', 'parallel', 'layered'),
-    'Nh':               int,
-    'nonlinearity':     str,
-    Optional('params'): Schema({}, extra_keys=Allow)
+    'name': Any('shared_a', 'shared_b', 'shared_c', 'parallel', 'layered'),
+    'Nh':                       int,
+    'nonlinearity':             str,
+    Optional('regularizer'):    Schema({}, extra_keys=Allow),
+    Optional('params'):         Schema({}, extra_keys=Allow)
     })
 
 compile_schema = Schema({

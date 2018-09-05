@@ -121,6 +121,8 @@ def learn(params, verbose=False):
         regularizer = BipolarL1Regularizer(regularizer.get('gamma', 0.0),
                                            regularizer.get('alpha', 0.0),
                                            regularizer.get('beta', 0.0))
+    else:
+        regularizer = None
 
     compile_params = dict(params['compile'])
     fit_params = dict(params['fit'])

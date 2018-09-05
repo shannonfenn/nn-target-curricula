@@ -116,8 +116,8 @@ def learn(params, verbose=False):
     learner_kwargs = params['architecture']['params']
     Nh = params['architecture']['Nh']
     nonlin = params['architecture']['nonlinearity']
-    regularizer = params['architecture'].get('regularizer', None)
-    if regularizer is not None:
+    regularizer = params['architecture'].get('regularizer', {})
+    if regularizer:
         regularizer = BipolarL1Regularizer(regularizer.get('gamma', 0.0),
                                            regularizer.get('alpha', 0.0),
                                            regularizer.get('beta', 0.0))

@@ -162,4 +162,4 @@ def learn(params, verbose=False):
     results.update(learner_record)
     results.update(errors_record)
 
-    return results
+    return results, model

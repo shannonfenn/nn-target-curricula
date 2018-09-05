@@ -16,7 +16,6 @@ def run_multiple_experiments(explistfile, verbose):
     with open(explistfile) as tasks, open(resultfile, 'w') as ostream:
         for i, line in enumerate(tasks):
             result = run_single_experiment(line.strip(), verbose)
-            ostream.write('[' if i == 0 else '\n,')
             json.dump(result, ostream, cls=NumpyAwareJSONEncoder,
                       separators=(',', ':'))
         ostream.write('\n]')
@@ -26,8 +25,13 @@ def run_single_experiment(expfile, verbose):
     K.clear_session()
     # task = pickle.load(open(expfile, 'rb'))
     task = pickle.load(gzip.open(expfile, 'rb'))
-    result = learn(task, verbose)
+    result, model = learn(task, verbose)
     result['id'] = task['id']
+
+    model.save_weights(expfile + '.weights.h5')
+    with open(expfile + '.arch.yaml', 'w') as f:
+        f.write(model.to_yaml())
+
     return result
 
 

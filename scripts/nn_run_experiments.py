@@ -18,7 +18,6 @@ def run_multiple_experiments(explistfile, verbose):
             result = run_single_experiment(line.strip(), verbose)
             json.dump(result, ostream, cls=NumpyAwareJSONEncoder,
                       separators=(',', ':'))
-        ostream.write('\n]')
 
 
 def run_single_experiment(expfile, verbose):

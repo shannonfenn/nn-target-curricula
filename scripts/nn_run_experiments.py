@@ -4,7 +4,6 @@ import argparse
 import pickle
 import json
 import gzip
-from os.path import splitext
 import keras.backend as K
 
 from utils import NumpyAwareJSONEncoder
@@ -18,6 +17,7 @@ def run_multiple_experiments(explistfile, verbose):
             result = run_single_experiment(line.strip(), verbose)
             json.dump(result, ostream, cls=NumpyAwareJSONEncoder,
                       separators=(',', ':'))
+            ostream.write('\n')
 
 
 def run_single_experiment(expfile, verbose):

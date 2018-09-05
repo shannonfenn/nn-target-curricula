@@ -91,8 +91,8 @@ def load_dataset(mapping):
 
 def learn(params, verbose=False):
     # params:
-    #     data: 
-    #         filename: str   e.g.  '/home/shannon/HMRI/experiments/datasets/functions/add5.npz'
+    #     data:
+    #         filename: str
     #     sampling:
     #         Ne: int
     #         seed: int
@@ -100,12 +100,11 @@ def learn(params, verbose=False):
     #     Nh: int     e.g. 60
     #     nonlinearity: str
     #     nolearn_params: dict
-    #     architecture: 
+    #     architecture:
     #         name: str
     #         params: dict (opt)
 
     t_start = time.time()
-
 
     # mode = -1 if nonlinearity == 'tanh' else 0
 
@@ -119,8 +118,8 @@ def learn(params, verbose=False):
     nonlin = params['architecture']['nonlinearity']
     regularizer = params['architecture'].get('regularizer', None)
     if regularizer is not None:
-        regularizer = BipolarL1Regularizer(regularizer.get('gamma', 0.0), 
-                                           regularizer.get('alpha', 0.0), 
+        regularizer = BipolarL1Regularizer(regularizer.get('gamma', 0.0),
+                                           regularizer.get('alpha', 0.0),
                                            regularizer.get('beta', 0.0))
 
     compile_params = dict(params['compile'])
@@ -161,5 +160,10 @@ def learn(params, verbose=False):
 
     results.update(learner_record)
     results.update(errors_record)
+
+    # save any keys beginning with 'notes'
+    for k, v in params.items():
+        if isinstance(k, str) and k.startswith('notes'):
+            results[k] = v
 
     return results, model

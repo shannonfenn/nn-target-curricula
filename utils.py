@@ -4,13 +4,13 @@ import minfs.feature_selection as fss
 from progress.bar import IncrementalBar
 
 
-def minfs_curriculum(X, Y):
+def minfs_curriculum(X, Y, params={}):
     if len(np.unique(Y)) != 2:
         raise ValueError('Error: non-binary target')
     thresh = (Y.max() + Y.min()) / 2
     X = (X >= thresh).astype(np.uint8)
     Y = (Y >= thresh).astype(np.uint8)
-    R, F = fss.ranked_feature_sets(X, Y)
+    R, F = fss.ranked_feature_sets(X, Y, **params)
     order = fss.order_from_rank(R)
     return order, F
 

@@ -113,9 +113,9 @@ def parallel_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
     return model, {}  # no supplementary record info
 
 
-def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs, 
+def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
                     regularizer=None, use_mask=True, which_layers='input+prev',
-                    rescale_epochs=True):
+                    rescale_epochs=True, mfs_params={}):
     # Single Nh-unit hidden layer - one net per tgt
     # Same layer structure as 'parallel'
 
@@ -135,7 +135,8 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
     for i in range(No):
         remaining_targets = np.setdiff1d(remaining_targets, learned_targets)
 
-        order, F = utils.minfs_curriculum(A, Y[:, remaining_targets])
+        order, F = utils.minfs_curriculum(A, Y[:, remaining_targets],
+                                          mfs_params)
 
         # save all feature sets
         for t, fs in zip(remaining_targets, F):
@@ -161,7 +162,7 @@ def layered_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
 
         # append new activations
         H = nnutils.get_activations(submodel, X_prime, 1)
-        
+
         if which_layers == 'input+prev':
             # Use X instead of A to prevent growth
             A = np.hstack([X, H])

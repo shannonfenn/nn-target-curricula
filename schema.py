@@ -1,6 +1,14 @@
+import os.path
 from good import (
-    Schema, All, Any, Range, IsDir, Allow, Match,
+    Schema, All, Any, Range, Allow, Match, message,
     Msg, Optional, Exclusive, Length, Entire)
+
+
+@message('Must be a valid directory.')
+def IsDir(d):
+    d = os.path.expanduser(d)
+    assert os.path.isdir(d)
+    return d
 
 
 seed_schema = Any(None, str, All(int, Range(min=0)))
@@ -21,7 +29,7 @@ data_schema = Any(
     Schema({
         'type':                 'file',
         'filename':             str,
-        Optional('dir'):        IsDir(),
+        Optional('dir'):        IsDir,
         Optional('add_noise'):  Range(min=0.0),
         Optional('targets'):    target_subset_schema,
         }),
@@ -30,7 +38,7 @@ data_schema = Any(
         'type':                 'split',
         'training_filename':    str,
         'test_filename':        str,
-        Optional('dir'):        IsDir(),
+        Optional('dir'):        IsDir,
         Optional('add_noise'):  Range(min=0.0),
         Optional('targets'):    target_subset_schema,
         })
@@ -50,7 +58,7 @@ sampling_schema = Any(
         'type':             'file',
         'filename':         str,
         Optional('test'):   str,
-        Optional('dir'):    IsDir(),
+        Optional('dir'):    IsDir,
         # allow for now, but don't force
         Optional('seed'):   seed_schema,
         }),

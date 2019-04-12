@@ -108,3 +108,5 @@ venv.bak/
 analysis\.ipynb
 
 *.ipynb
+
+neuralnetexp\.sublime-project

@@ -10,7 +10,7 @@ def minfs_curriculum(X, Y, params={}):
     thresh = (Y.max() + Y.min()) / 2
     X = (X >= thresh).astype(np.uint8)
     Y = (Y >= thresh).astype(np.uint8)
-    R, F = fss.ranked_feature_sets(X, Y, **params)
+    R, F, _ = fss.ranked_feature_sets(X, Y, **params)
     order = fss.order_from_rank(R)
     return order, F
 

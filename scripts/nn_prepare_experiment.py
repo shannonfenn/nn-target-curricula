@@ -24,7 +24,7 @@ def parse_arguments():
                         type=argparse.FileType('r'),
                         help='experiment config filename.')
     parser.add_argument('-d', '--directory', type=str, metavar='dir',
-                        default='~/HMRI/nn-experiments/results',
+                        default='~/HMRI/experiments-nn/results',
                         help='base directory to create result directory in.')
     parser.add_argument('-b', '--batch-mode', action='store_true',
                         help='suppress progress bars.')

@@ -73,8 +73,8 @@ def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
                   activity_regularizer=regularizer)(h)
         hidden_layers.append(h)
     output_units = [None]*No
-    for t in order:
-        out = Dense(1, activation=nonlinearity)(hidden_layers[t])
+    for i, t in enumerate(order):
+        out = Dense(1, activation=nonlinearity)(hidden_layers[i])
         output_units[t] = out
 
     out = Concatenate()(output_units)

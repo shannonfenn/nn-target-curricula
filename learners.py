@@ -54,11 +54,15 @@ def shared_b_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
 
 
 def shared_c_learner(X, Y, Nh, nonlinearity, compile_kwargs, fit_kwargs,
-                     regularizer):
+                     regularizer, order=True):
     _, Ni = X.shape
     _, No = Y.shape
     # determine target order apriori
-    order, F = utils.minfs_curriculum(X, Y)
+    if order:
+        order, F = utils.minfs_curriculum(X, Y)
+    else:
+        order = np.random.permutation(No)
+        F = None
 
     # Nt hidden layers - each output unit has its own hidden layer which are connected in succession
     inp = Input(shape=(Ni,))
@@ -210,7 +214,7 @@ def join_models(Ni, target_order, layer_configs, feature_sets, use_mask, which_l
         for units, nonlinearity, weights in layer_config:
             h = Dense(units, activation=nonlinearity, weights=weights)(h)
             layers.append(h)
-       
+
         # build up a list of the output layers in the original target order
         # (the inverse of the permutation given by "target_order")
         hidden_layers = layers[:-1]
